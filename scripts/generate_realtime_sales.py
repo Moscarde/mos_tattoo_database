@@ -144,7 +144,7 @@ class RealtimeGenerator:
 
         # Tempo de entrega esperado
         expected_delivery_days = random.randint(*EXPECTED_DELIVERY_RANGE)
-        
+
         # Vendas em tempo real ainda não foram entregues
         # delivered_at será sempre None pois a venda acabou de acontecer
         sold_at = datetime.now()
@@ -257,7 +257,9 @@ class RealtimeGenerator:
         print(f"  Valor Total: R$ {sale['total_value']:.2f}")
         if not sale["canceled"]:
             print(f"  Prazo de Entrega: {sale['expected_delivery_days']} dias")
-            expected_date = sale['sold_at'] + timedelta(days=sale['expected_delivery_days'])
+            expected_date = sale["sold_at"] + timedelta(
+                days=sale["expected_delivery_days"]
+            )
             print(f"  Entrega Prevista: {expected_date.strftime('%d/%m/%Y')}")
         print(f"  Status: {status}")
         print(f"{'=' * 70}")
@@ -278,7 +280,7 @@ class RealtimeGenerator:
             try:
                 # Gerar e inserir venda
                 sale, items = self.generate_sale_data()
-                
+
                 if self.insert_sale(sale, items):
                     self.print_sale_info(sale, items)
 

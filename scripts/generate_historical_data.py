@@ -125,7 +125,7 @@ class DataGenerator:
 
         # Tempo de entrega esperado
         expected_delivery_days = random.randint(*EXPECTED_DELIVERY_RANGE)
-        
+
         # Calcular data de entrega real (apenas se já deveria ter sido entregue)
         # Vendas canceladas não têm entrega
         delivered_at = None
@@ -133,7 +133,7 @@ class DataGenerator:
             delivery_variation = random.randint(*DELIVERY_VARIATION_RANGE)
             actual_delivery_days = max(1, expected_delivery_days + delivery_variation)
             potential_delivery_date = timestamp + timedelta(days=actual_delivery_days)
-            
+
             # Só define delivered_at se a data já passou (não pode ser no futuro)
             if potential_delivery_date <= datetime.now():
                 delivered_at = potential_delivery_date
@@ -314,28 +314,34 @@ class DataGenerator:
         self.cursor.execute("SELECT AVG(expected_delivery_days) FROM sales")
         avg_expected = self.cursor.fetchone()[0] or 0
         print(f"Tempo médio esperado: {avg_expected:.1f} dias")
-        
+
         # Tempo médio de entrega real
-        self.cursor.execute("""
+        self.cursor.execute(
+            """
             SELECT AVG(EXTRACT(DAY FROM (delivered_at - sold_at)))
             FROM sales 
             WHERE delivered_at IS NOT NULL
-        """)
+        """
+        )
         avg_actual = self.cursor.fetchone()[0] or 0
         print(f"Tempo médio real: {avg_actual:.1f} dias")
-        
+
         # Entregas no prazo
-        self.cursor.execute("""
+        self.cursor.execute(
+            """
             SELECT COUNT(*)
             FROM sales
             WHERE delivered_at IS NOT NULL
               AND EXTRACT(DAY FROM (delivered_at - sold_at)) <= expected_delivery_days
-        """)
+        """
+        )
         on_time = self.cursor.fetchone()[0] or 0
         self.cursor.execute("SELECT COUNT(*) FROM sales WHERE delivered_at IS NOT NULL")
         total_delivered = self.cursor.fetchone()[0] or 0
         on_time_rate = (on_time / total_delivered * 100) if total_delivered > 0 else 0
-        print(f"Entregas no prazo: {on_time:,} de {total_delivered:,} ({on_time_rate:.1f}%)")
+        print(
+            f"Entregas no prazo: {on_time:,} de {total_delivered:,} ({on_time_rate:.1f}%)"
+        )
 
         # Total de itens vendidos
         self.cursor.execute("SELECT SUM(quantity) FROM sale_items")
