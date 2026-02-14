@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: tattoo_sales_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./sql/seed_products.sql:/docker-entrypoint-initdb.d/02-seed_products.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tattoo_network
+
+  historical_data:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile
+    container_name: tattoo_historical_data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      PYTHONUNBUFFERED: 1
+    networks:
+      - tattoo_network
+    command: python -u generate_historical_data.py
+    profiles:
+      - setup
+
+  data_generator:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile
+    container_name: tattoo_data_generator
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      PYTHONUNBUFFERED: 1
+    networks:
+      - tattoo_network
+    command: python -u generate_realtime_sales.py
+
+networks:
+  tattoo_network:
+    driver: bridge
