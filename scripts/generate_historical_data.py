@@ -2,7 +2,8 @@
 """
 Script para gerar dados históricos de vendas.
 Gera vendas desde hoje - 365 dias até agora.
-Média de 1 venda por minuto (~525.600 vendas/ano).
+Média de 4 vendas por dia (~1.460 vendas/ano).
+Faturamento estimado entre 8M e 12M por ano.
 """
 
 import os
@@ -21,16 +22,20 @@ load_dotenv()
 # Configurações
 DATABASE_URL = os.getenv("DATABASE_URL")
 DAYS_BACK = 365
-SALES_PER_DAY = 1440  # ~1 venda por minuto (60 * 24)
+SALES_PER_DAY = 4  # Reduzido para manter faturamento entre 1M e 10M/ano
 
-# Pesos para distribuição de vendas por unidade (5 unidades)
-UNIT_WEIGHTS = {
+# Pesos base para distribuição de vendas por unidade (5 unidades)
+# Estes valores serão variados mensalmente para criar padrões mais realistas
+BASE_UNIT_WEIGHTS = {
     1: 0.30,  # SP Centro - 30%
     2: 0.25,  # RJ Copacabana - 25%
     3: 0.20,  # BH Savassi - 20%
     4: 0.15,  # CT Batel - 15%
     5: 0.10,  # POA Moinhos - 10%
 }
+
+# Variação mensal permitida nos pesos (±30%)
+MONTHLY_WEIGHT_VARIATION = 0.30
 
 # Taxa de cancelamento por unidade (3% a 8%)
 CANCEL_RATE_RANGE = (0.03, 0.08)
@@ -108,16 +113,43 @@ class DataGenerator:
         random_seconds = random.randint(0, int(time_delta.total_seconds()))
         return start_date + timedelta(seconds=random_seconds)
 
-    def select_unit(self) -> int:
-        """Seleciona uma unidade baseada nos pesos configurados."""
-        units = list(UNIT_WEIGHTS.keys())
-        weights = list(UNIT_WEIGHTS.values())
+    def get_monthly_weights(self, timestamp: datetime) -> Dict[int, float]:
+        """
+        Gera pesos variáveis por unidade baseados no mês.
+        Isso cria padrões mais realistas onde uma loja pode performar
+        bem em um mês e mal em outro.
+        """
+        # Usar ano e mês como seed para consistência no mesmo mês
+        month_seed = timestamp.year * 12 + timestamp.month
+        rng = random.Random(month_seed)
+
+        # Aplicar variação aleatória aos pesos base
+        monthly_weights = {}
+        for unit_id, base_weight in BASE_UNIT_WEIGHTS.items():
+            # Variação entre -30% e +30% do peso base
+            variation = rng.uniform(-MONTHLY_WEIGHT_VARIATION, MONTHLY_WEIGHT_VARIATION)
+            varied_weight = base_weight * (1 + variation)
+            # Garantir que não seja negativo
+            monthly_weights[unit_id] = max(0.05, varied_weight)
+
+        # Normalizar para que a soma seja 1.0
+        total_weight = sum(monthly_weights.values())
+        for unit_id in monthly_weights:
+            monthly_weights[unit_id] /= total_weight
+
+        return monthly_weights
+
+    def select_unit(self, timestamp: datetime) -> int:
+        """Seleciona uma unidade baseada nos pesos variáveis por mês."""
+        monthly_weights = self.get_monthly_weights(timestamp)
+        units = list(monthly_weights.keys())
+        weights = list(monthly_weights.values())
         return random.choices(units, weights=weights, k=1)[0]
 
     def generate_sale_data(self, timestamp: datetime) -> Tuple[Dict, List[Dict]]:
         """Gera dados de uma venda completa."""
-        # Selecionar unidade e vendedor
-        unit_id = self.select_unit()
+        # Selecionar unidade e vendedor (usando timestamp para variação mensal)
+        unit_id = self.select_unit(timestamp)
         seller_id = random.choice(self.sellers_by_unit[unit_id])
 
         # Determinar se está cancelada
