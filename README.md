@@ -10,6 +10,8 @@ Este repositório fornece um conjunto de dados fictícios para validar a engine 
 
 ## 🚀 Como Rodar
 
+### Opção 1: Usando o script gerenciador (Recomendado)
+
 A maneira mais simples é utilizar o script gerenciador `manage.sh`.
 
 **Pré-requisitos:** Docker e Docker Compose.
@@ -38,6 +40,48 @@ chmod +x manage.sh
 ```
 
 *Inicia um gerador contínuo de novos registros, simulando operação ao vivo.*
+
+---
+
+### Opção 2: Usando Docker Compose diretamente
+
+Caso prefira não utilizar o script gerenciador, você pode executar os comandos do Docker Compose manualmente.
+
+**Pré-requisitos:** Docker e Docker Compose.
+
+1. **Configure o ambiente:**
+
+```bash
+cp .env.example .env
+```
+
+2. **Inicie o banco de dados:**
+
+```bash
+docker compose up -d postgres
+```
+
+3. **Gere dados históricos (Opcional):**
+
+Para popular o banco com dados retroativos, utilize o perfil de setup:
+
+```bash
+docker compose --profile setup up historical_data
+```
+
+4. **Geração em tempo real (Opcional):**
+
+Para iniciar o gerador de vendas contínuas em background:
+
+```bash
+docker compose up -d data_generator
+```
+
+Para parar o gerador:
+
+```bash
+docker compose stop data_generator
+```
 
 ---
 
