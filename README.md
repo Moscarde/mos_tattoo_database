@@ -1,75 +1,81 @@
-# 🎨 Tattoo Sales Database
+# Template-Based BI Distribution | Sample Database (Demo)
 
-Banco de dados PostgreSQL para análise de vendas de insumos de tatuagem, containerizado com Docker.
+Banco de dados PostgreSQL de demonstração do ecossistema [Template-Based BI Distribution](https://github.com/Moscarde/Template-Based-BI-Distribution), containerizado com Docker.
+
+Este repositório fornece um conjunto de dados fictícios para validar a engine de templates em funcionamento. A temática escolhida — uma rede de unidades de venda de insumos — foi definida para viabilizar uma exploração rica de métricas, categorias e granularidades nos dashboards, sem nenhuma relação com o domínio de aplicação da engine.
+
+> 🔗 **Repositório Central**: Para entender o contexto completo da arquitetura, acesse o [repositório principal](https://github.com/Moscarde/Template-Based-BI-Distribution).
+
+---
 
 ## 🚀 Como Rodar
 
 A maneira mais simples é utilizar o script gerenciador `manage.sh`.
 
-### Pré-requisitos
-*   Docker e Docker Compose
+**Pré-requisitos:** Docker e Docker Compose.
 
-### Passos
-1.  **Inicie o banco de dados:**
-    ```bash
-    chmod +x manage.sh
-    ./manage.sh up
-    ```
-    *Isso cria o arquivo `.env` automaticamente e sobe o container na porta **5433**.*
+1. **Inicie o banco de dados:**
 
-2.  **Gere dados históricos (Opcional):**
-    ```bash
-    ./manage.sh setup
-    ```
-    *Popula o banco com cerca de 500.000 vendas retroativas.*
+```bash
+chmod +x manage.sh
+./manage.sh up
+```
 
-3.  **Geração em tempo real (Opcional):**
-    ```bash
-    ./manage.sh generate
-    ```
-    *Inicia um gerador contínuo de novas vendas.*
+*Isso cria o arquivo `.env` automaticamente e sobe o container na porta **5433**.*
+
+2. **Gere dados históricos (Opcional):**
+
+```bash
+./manage.sh setup
+```
+
+*Popula o banco com cerca de 500.000 registros de vendas retroativas.*
+
+3. **Geração em tempo real (Opcional):**
+
+```bash
+./manage.sh generate
+```
+
+*Inicia um gerador contínuo de novos registros, simulando operação ao vivo.*
 
 ---
 
 ## 🔧 Variáveis de Ambiente
 
-As configurações padrão são definidas no arquivo `.env` gerado.
+As configurações padrão são definidas no arquivo `.env` gerado automaticamente.
 
 | Variável | Valor Padrão | Descrição |
 | :--- | :--- | :--- |
-| `POSTGRES_USER` | `tattoo_user` | Usuário do banco |
-| `POSTGRES_PASSWORD` | `tattoo_pass` | Senha do banco |
-| `POSTGRES_DB` | `tattoo_sales_db` | Nome do banco de dados |
+| `POSTGRES_USER` | `demo_user` | Usuário do banco |
+| `POSTGRES_PASSWORD` | `demo_pass` | Senha do banco |
+| `POSTGRES_DB` | `demo_db` | Nome do banco de dados |
 | `POSTGRES_PORT` | `5433` | Porta exposta no host |
 
 ---
 
 ## 🗂️ Esquema de Dados (Schema)
 
-O banco segue um modelo relacional simples de vendas.
+O banco segue um modelo relacional de vendas multi-unidade, desenhado para exercitar os recursos de isolamento e agregação da engine.
 
 | Tabela | Descrição |
 | :--- | :--- |
-| **`units`** | Unidades físicas de venda (lojas/filiais). |
-| **`sellers`** | Vendedores associados a uma unidade específica. |
+| **`units`** | Unidades de negócio (filiais/lojas) — base do isolamento multi-tenant. |
+| **`sellers`** | Vendedores associados a cada unidade. |
 | **`products`** | Catálogo de produtos (preço, categoria, etc). |
 | **`sales`** | Registro das transações (data, valor total, status). |
 | **`sale_items`** | Itens individuais de cada venda (quantidade, preço unitário). |
 
-> **Views Úteis:**
-> *   `v_sales_complete`: Visão desnormalizada das vendas com dados da unidade e vendedor.
-> *   `v_sale_items_detail`: Detalhes dos itens com nome do produto e categoria.
+**Views Úteis:**
+- `v_sales_complete` — Visão desnormalizada das vendas com dados da unidade e vendedor.
+- `v_sale_items_detail` — Detalhes dos itens com nome do produto e categoria.
 
 ---
 
-## 🌱 Dados Fictícios (Seeding)
+## 🌱 Estratégia de Seeding
 
 O projeto utiliza uma abordagem híbrida para popular o banco:
 
-1.  **Dados Estáticos (SQL):**
-    *   As tabelas são criadas e as unidades/vendedores iniciais são inseridos via `schema.sql`.
-    *   Produtos iniciais são carregados via `seed_products.sql`.
+**Dados Estáticos (SQL):** As tabelas são criadas e as unidades, vendedores e produtos iniciais são inseridos via `schema.sql` e `seed_products.sql`.
 
-2.  **Dados Dinâmicos (Python):**
-    *   O comando `./manage.sh setup` executa um script Python (`generate_historical_data.py`) que cria um histórico de vendas realista.
-    *   O comando `./manage.sh generate` simula vendas em tempo real (`generate_realtime_sales.py`).
+**Dados Dinâmicos (Python):** O comando `./manage.sh setup` executa um script Python (`generate_historical_data.py`) que gera um histórico de vendas realista. O comando `./manage.sh generate` simula operação contínua em tempo real (`generate_realtime_sales.py`).
